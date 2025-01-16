@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import PlanCard from "./planCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import axios from "axios";
+
 function Plans() {
   const [startIndex, setStartIndex] = useState(0);
   const [plans, setPlans] = useState([]);
+  const [isMobile, setIsMobile] = useState(false);
+
   const nextPlan = () => setStartIndex((prev) => (prev + 1) % plans.length);
   const prevPlan = () =>
     setStartIndex((prev) => (prev - 1 + plans.length) % plans.length);
@@ -12,7 +15,8 @@ function Plans() {
   const fetchPlans = async () => {
     try {
       const response = await axios.get("https://api-silvianet.vercel.app/api/plans");
-      setPlans(response.data || []);
+      const sortedPlans = response.data.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+      setPlans(sortedPlans || []);
     } catch (error) {
       console.error("Error al obtener los planes:", error);
     }
@@ -20,15 +24,29 @@ function Plans() {
 
   useEffect(() => {
     fetchPlans();
+
+    // Detectar el tamaño de la pantalla
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768); // Considerar móvil si el ancho es menor a 768px
+    };
+
+    handleResize(); // Llamar una vez al inicio
+    window.addEventListener("resize", handleResize); // Agregar el listener
+
+    return () => {
+      window.removeEventListener("resize", handleResize); // Limpiar el listener
+    };
   }, []);
 
   const visiblePlans =
     plans.length > 0
-      ? [
-          plans[startIndex],
-          plans[(startIndex + 1) % plans.length],
-          plans[(startIndex + 2) % plans.length],
-        ]
+      ? isMobile
+        ? plans // Mostrar todos los planes en móvil
+        : [
+            plans[startIndex],
+            plans[(startIndex + 1) % plans.length],
+            plans[(startIndex + 2) % plans.length],
+          ]
       : [];
 
   return (
@@ -50,18 +68,22 @@ function Plans() {
               </div>
             ))}
           </div>
-          <button
-            className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-75 p-2 rounded-full shadow-md sm:-left-6 lg:-left-10"
-            onClick={prevPlan}
-          >
-            <ChevronLeft className="h-6 w-6 text-blue-600" />
-          </button>
-          <button
-            className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-75 p-2 rounded-full shadow-md sm:-right-6 lg:-right-10"
-            onClick={nextPlan}
-          >
-            <ChevronRight className="h-6 w-6 text-blue-600" />
-          </button>
+          {!isMobile && (
+            <>
+              <button
+                className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-75 p-2 rounded-full shadow-md sm:-left-6 lg:-left-10"
+                onClick={prevPlan}
+              >
+                <ChevronLeft className="h-6 w-6 text-blue-600" />
+              </button>
+              <button
+                className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-75 p-2 rounded-full shadow-md sm:-right-6 lg:-right-10"
+                onClick={nextPlan}
+              >
+                <ChevronRight className="h-6 w-6 text-blue-600" />
+              </button>
+            </>
+          )}
         </div>
       </div>
     </section>
